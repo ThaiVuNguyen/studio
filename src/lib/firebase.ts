@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc, collection, getDocs, addDoc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc, collection, getDocs, addDoc, writeBatch, deleteDoc, arrayUnion } from 'firebase/firestore';
 import type { Player } from '@/components/game/Scoreboard';
 
 // Your web app's Firebase configuration
@@ -64,15 +64,9 @@ export type GameState = {
   questions: Question[];
 };
 
-const initialPlayers: Player[] = [
-  { id: '1', name: 'Player 1', score: 0 },
-  { id: '2', name: 'Player 2', score: 0 },
-  { id: '3', name: 'You', score: 0, isYou: true },
-  { id: '4', name: 'Player 4', score: 0 },
-];
 
 export const getInitialState = (): GameState => ({
-  players: initialPlayers,
+  players: [],
   currentQuestionIndex: 0,
   timer: ROUND_TIME,
   buzzedPlayerId: null,
@@ -137,6 +131,12 @@ export async function initializeGame() {
 
 export async function updateGameState(newState: Partial<GameState>) {
     await updateDoc(gameDocRef, newState);
+}
+
+export async function addPlayer(player: Player) {
+  await updateDoc(gameDocRef, {
+    players: arrayUnion(player)
+  });
 }
 
 export async function resetGameInFirestore() {

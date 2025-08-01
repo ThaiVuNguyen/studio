@@ -115,10 +115,10 @@ export default function GamePage() {
           </h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-             <Link href="/player" passHref>
+             <Link href="/join" passHref>
               <Button variant="outline">
                 <User className="mr-2 h-4 w-4" />
-                Player View
+                Join as Player
               </Button>
             </Link>
              <Link href="/host" passHref>
