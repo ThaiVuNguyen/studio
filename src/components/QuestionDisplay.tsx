@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,12 +33,15 @@ export function QuestionDisplay({ question, roundDuration = 10, onTimeUp, winner
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !winner) {
+      // onTimeUp is now less critical as host controls flow,
+      // but we can still call it for visual purposes.
       onTimeUp();
     }
   }, [timeLeft, onTimeUp, winner]);
 
   const progress = (timeLeft / roundDuration) * 100;
-  const isRoundOver = timeLeft === 0 || !!winner;
+  // The round is over only when the host confirms a winner.
+  const isRoundOver = !!winner;
 
   return (
     <Card className="w-full max-w-2xl mx-auto text-center shadow-lg">
@@ -51,7 +55,8 @@ export function QuestionDisplay({ question, roundDuration = 10, onTimeUp, winner
           <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden border">
              <Progress value={progress} className="h-full" />
              <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-primary-foreground drop-shadow-sm">
-                {!isRoundOver && `${timeLeft}s`}
+                {!isRoundOver && timeLeft > 0 && `${timeLeft}s`}
+                {timeLeft === 0 && !isRoundOver && "Time's Up! Waiting for Host..."}
              </span>
           </div>
          

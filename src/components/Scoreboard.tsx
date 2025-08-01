@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
@@ -8,10 +9,12 @@ interface Player {
 
 interface ScoreboardProps {
   players: Player[];
-  buzzedInPlayer: string | null;
+  buzzedInPlayer: string | null; // This can now represent the confirmed winner of the round
 }
 
 export function Scoreboard({ players, buzzedInPlayer }: ScoreboardProps) {
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+
   return (
     <Card className="w-full max-w-sm shadow-lg">
       <CardHeader>
@@ -19,7 +22,7 @@ export function Scoreboard({ players, buzzedInPlayer }: ScoreboardProps) {
       </CardHeader>
       <CardContent>
         <ul className="space-y-4">
-          {players.map((player) => (
+          {sortedPlayers.map((player) => (
             <li
               key={player.name}
               className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${

@@ -33,11 +33,17 @@ export interface Question {
     options: string[];
 }
 
+export interface BuzzerInfo {
+    playerName: string;
+    timestamp: number;
+}
+
 export interface GameState {
     players: Player[];
     questionIndex: number;
-    buzzedInPlayer: string | null;
     questions: Question[];
+    buzzers: BuzzerInfo[]; // Array of players who have buzzed in
+    roundWinner: string | null; // The confirmed winner of the round
 }
 
 const mockQuestions: Question[] = [
@@ -61,8 +67,9 @@ export const initializeGame = async () => {
                 { name: 'Player 3', score: 0 },
             ],
             questionIndex: 0,
-            buzzedInPlayer: null,
-            questions: mockQuestions,
+            questions: [], // Questions will be loaded separately
+            buzzers: [],
+            roundWinner: null,
         };
         await setDoc(gameRef, initialState);
     }
@@ -103,7 +110,9 @@ export const fetchQuestions = async (): Promise<Question[]> => {
     if (snapshot.empty) {
         // If there are no questions in Firestore, add the mock questions
         for (const question of mockQuestions) {
-            await addQuestion(question);
+            // Firestore generates the ID, so we pass the rest of the data
+            const { id, ...rest } = question;
+            await addDoc(getQuestionsRef(), rest);
         }
         return mockQuestions;
     }

@@ -14,12 +14,28 @@ export default function Home() {
 
   useEffect(() => {
     const setupGame = async () => {
+      // Initialize game, which creates doc if it doesn't exist
       await initializeGame();
+      
+      // Listen for real-time changes
       const unsubscribe = onGameStateChange(async (state) => {
+        if (!state) {
+          // This can happen if the document is deleted
+          console.log("No game state found, re-initializing.");
+          await initializeGame(); // Re-initialize
+          return;
+        }
+
+        // If questions are missing from the game state, fetch them and update the state
         if (!state.questions || state.questions.length === 0) {
           const questions = await fetchQuestions();
-          await updateGameState({ questions });
-          setGameState({ ...state, questions });
+          if (questions.length > 0) {
+            await updateGameState({ questions, questionIndex: 0 });
+            // The listener will pick up this change and update the state, no need to set it here
+          } else {
+            // Handle case where there are no questions in DB
+             setGameState(state);
+          }
         } else {
           setGameState(state);
         }
@@ -42,49 +58,53 @@ export default function Home() {
     );
   }
 
-  const { players, questionIndex, buzzedInPlayer, questions } = gameState;
+  const { players, questionIndex, buzzers, roundWinner, questions } = gameState;
   const currentQuestion = questions[questionIndex];
-  const isRoundOver = !!buzzedInPlayer;
+  const isRoundOver = !!roundWinner;
+
+  // A player has buzzed if their name is in the buzzers array for this round.
+  const hasBuzzed = (playerName: string) => buzzers.some(b => b.playerName === playerName);
+
 
   const handleBuzz = (playerName: string) => {
-    if (!isRoundOver) {
-      const newPlayers = players.map(p => 
-        p.name === playerName ? { ...p, score: p.score + 10 } : p
-      );
-      updateGameState({ buzzedInPlayer: playerName, players: newPlayers });
-    }
-  };
-
-  const handleTimeUp = () => {
-    if (!isRoundOver) {
-      updateGameState({ buzzedInPlayer: '' }); // Empty string indicates time up
+    // Players can only buzz if the round isn't over and they haven't already buzzed.
+    if (!isRoundOver && !hasBuzzed(playerName)) {
+      const newBuzz = { playerName, timestamp: Date.now() };
+      const newBuzzers = [...buzzers, newBuzz];
+      updateGameState({ buzzers: newBuzzers });
     }
   };
 
   const nextRound = () => {
     const newQuestionIndex = (questionIndex + 1) % questions.length;
     updateGameState({
-      buzzedInPlayer: null,
+      buzzers: [],
+      roundWinner: null,
       questionIndex: newQuestionIndex,
     });
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8 space-y-8">
-       <div className="absolute top-4 right-4">
+       <div className="absolute top-4 right-4 flex items-center gap-4">
+          <Link href="/host" passHref>
+            <Button variant="outline">Host View</Button>
+          </Link>
           <Link href="/admin" passHref>
-            <Button variant="outline">Admin Dashboard</Button>
+            <Button variant="outline">Admin</Button>
           </Link>
         </div>
       <div className="flex w-full max-w-6xl justify-around items-start">
         <div className="w-full max-w-3xl">
           <QuestionDisplay 
             question={currentQuestion}
-            onTimeUp={handleTimeUp}
-            winner={buzzedInPlayer}
+            winner={roundWinner}
+            // The onTimeUp callback is now less critical as the host controls flow
+            // but we can keep it for visual indication
+            onTimeUp={() => {}} 
           />
         </div>
-        <Scoreboard players={players} buzzedInPlayer={buzzedInPlayer} />
+        <Scoreboard players={players} buzzedInPlayer={roundWinner} />
       </div>
 
       <div className="flex justify-center items-end space-x-8 pt-8">
@@ -93,16 +113,17 @@ export default function Home() {
             key={player.name}
             playerName={player.name}
             onBuzz={handleBuzz}
-            disabled={isRoundOver}
-            isWinner={player.name === buzzedInPlayer}
+            // Disable if round is over OR if this player has already buzzed
+            disabled={isRoundOver || hasBuzzed(player.name)}
+            isWinner={player.name === roundWinner}
           />
         ))}
       </div>
       
       {isRoundOver && (
-        <Button onClick={nextRound} className="mt-8 animate-in fade-in">
-          Next Question
-        </Button>
+        <p className="text-2xl font-bold animate-in fade-in">
+          Round Over! Winner: {roundWinner}
+        </p>
       )}
     </main>
   );
