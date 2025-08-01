@@ -30,20 +30,24 @@ export default function AdminLayout({
           </SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/admin'}>
-                <Link href="/admin">
-                  <LayoutDashboard />
-                  Dashboard
-                </Link>
-              </SidebarMenuButton>
+              <Link href="/admin" passHref legacyBehavior>
+                <SidebarMenuButton asChild isActive={pathname === '/admin'}>
+                  <a>
+                    <LayoutDashboard />
+                    Dashboard
+                  </a>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/admin/suggest'}>
-                <Link href="/admin/suggest">
-                  <Lightbulb />
-                  Suggest Questions
-                </Link>
-              </SidebarMenuButton>
+               <Link href="/admin/suggest" passHref legacyBehavior>
+                <SidebarMenuButton asChild isActive={pathname === '/admin/suggest'}>
+                  <a>
+                    <Lightbulb />
+                    Suggest Questions
+                  </a>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </Sidebar>

@@ -518,7 +518,6 @@ const SidebarMenuButton = React.forwardRef<
     asChild?: boolean
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
-    children: React.ReactNode
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -537,21 +536,16 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
 
-    const childNodes = React.Children.toArray(children);
-    const icon = childNodes.find((child: any) => child.type?.displayName?.includes('Icon') || child.type?.toString().includes('lucide'));
-    const text = childNodes.filter((child: any) => typeof child === 'string' || child.type?.displayName !== 'Icon');
-
     const button = (
-      <Comp
+       <Comp
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
         {...props}
       >
-        {icon}
-        <span className="truncate">{text}</span>
+        {children}
       </Comp>
     )
 
@@ -564,7 +558,6 @@ const SidebarMenuButton = React.forwardRef<
             children: <>{tooltip}</>
         }
     }
-
 
     return (
       <Tooltip>
