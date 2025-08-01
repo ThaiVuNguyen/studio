@@ -133,12 +133,9 @@ export async function initializeGame(): Promise<GameState> {
 
     if (docSnap.exists()) {
         const existingState = docSnap.data() as GameState;
-        // Ensure questions are up-to-date
-        if (JSON.stringify(existingState.questions) !== JSON.stringify(questions)) {
-            await updateDoc(gameDocRef, { questions });
-            return { ...existingState, questions };
-        }
-        return existingState;
+        // Always ensure questions are up-to-date on initialization
+        await updateDoc(gameDocRef, { questions });
+        return { ...existingState, questions };
     } else {
         const initialState = getInitialState();
         initialState.questions = questions;
