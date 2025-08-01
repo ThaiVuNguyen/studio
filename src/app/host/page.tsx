@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -27,16 +28,22 @@ export default function HostPage() {
     return () => unsubscribe();
   }, []);
 
-  const nextRound = useCallback(() => {
+  const nextRound = useCallback(async () => {
     if (!gameState || !gameState.questions) return;
+    
+    // Fetch latest questions in case they were updated
+    const { fetchQuestions } = await import('@/lib/firebase');
+    const updatedQuestions = await fetchQuestions();
+
     updateGameState({
         buzzedPlayerId: null,
         roundWinner: null,
         showConfetti: false,
-        currentQuestionIndex: (gameState.currentQuestionIndex + 1) % gameState.questions.length,
+        currentQuestionIndex: (gameState.currentQuestionIndex + 1) % updatedQuestions.length,
         timer: 30, // Reset timer
         isRoundActive: true,
         waitingForHost: false,
+        questions: updatedQuestions,
     });
   }, [gameState]);
 
@@ -64,6 +71,8 @@ export default function HostPage() {
   const handleIncorrectAnswer = () => {
      if (!gameState || !gameState.buzzedPlayerId) return;
      updateGameState({
+        roundWinner: null, // No winner
+        showConfetti: false,
         waitingForHost: false,
         isRoundActive: false, // End the round
      });
@@ -79,6 +88,15 @@ export default function HostPage() {
   }
   
   const { players, currentQuestionIndex, buzzedPlayerId, waitingForHost, questions } = gameState;
+
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+          <div className="p-6 text-center">Waiting for questions to be added from the admin dashboard.</div>
+      </div>
+    );
+  }
+  
   const currentQuestion = questions[currentQuestionIndex];
   const buzzedPlayer = players.find(p => p.id === buzzedPlayerId);
 

@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, onSnapshot, getDoc, updateDoc, collection, getDocs, addDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import type { Player } from '@/components/game/Scoreboard';
 
 // Your web app's Firebase configuration
@@ -20,32 +20,39 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const MOCK_QUESTIONS = [
+const MOCK_QUESTIONS_DATA = [
   {
-    id: '1',
     question: 'This 2017 hit by Luis Fonsi and Daddy Yankee became the most-viewed YouTube video of all time.',
     answer: 'Despacito',
+    youtubeUrl: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk'
   },
   {
-    id: '2',
     question: 'What artist is known for the "Moonwalk" and the album "Thriller"?',
     answer: 'Michael Jackson',
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOnqjkJTMaA'
   },
   {
-    id: '3',
     question: 'The song "Bohemian Rhapsody" is a signature hit for which British rock band?',
     answer: 'Queen',
+    youtubeUrl: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ'
   },
   {
-    id: '4',
     question: 'Which female artist holds the record for the most Grammy wins?',
     answer: 'Beyoncé',
+    youtubeUrl: ''
   },
 ];
 
-const ROUND_TIME = 30; // seconds
+export const ROUND_TIME = 30; // seconds
 
-type GameState = {
+export type Question = {
+  id: string;
+  question: string;
+  answer: string;
+  youtubeUrl?: string;
+}
+
+export type GameState = {
   players: Player[];
   currentQuestionIndex: number;
   timer: number;
@@ -54,7 +61,7 @@ type GameState = {
   showConfetti: boolean;
   roundWinner: Player | null;
   waitingForHost: boolean;
-  questions: typeof MOCK_QUESTIONS;
+  questions: Question[];
 };
 
 const initialPlayers: Player[] = [
@@ -64,7 +71,7 @@ const initialPlayers: Player[] = [
   { id: '4', name: 'Player 4', score: 0 },
 ];
 
-const getInitialState = (): GameState => ({
+export const getInitialState = (): GameState => ({
   players: initialPlayers,
   currentQuestionIndex: 0,
   timer: ROUND_TIME,
@@ -73,29 +80,81 @@ const getInitialState = (): GameState => ({
   showConfetti: false,
   roundWinner: null,
   waitingForHost: false,
-  questions: MOCK_QUESTIONS
+  questions: []
 });
 
 const GAME_ID = 'main_game';
-const gameDocRef = doc(db, 'games', GAME_ID);
+export const gameDocRef = doc(db, 'games', GAME_ID);
+export const questionsCollectionRef = collection(db, 'questions');
 
-async function initializeGame(): Promise<GameState> {
+
+async function seedInitialQuestions() {
+    const questionsSnapshot = await getDocs(questionsCollectionRef);
+    if (questionsSnapshot.empty) {
+        const batch = writeBatch(db);
+        MOCK_QUESTIONS_DATA.forEach((question) => {
+            const newDocRef = doc(questionsCollectionRef);
+            batch.set(newDocRef, question);
+        });
+        await batch.commit();
+        console.log("Seeded initial questions.");
+    }
+}
+
+export async function fetchQuestions(): Promise<Question[]> {
+    const snapshot = await getDocs(questionsCollectionRef);
+    if (snapshot.empty) {
+        await seedInitialQuestions();
+        const seededSnapshot = await getDocs(questionsCollectionRef);
+        return seededSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+}
+
+export async function addQuestion(questionData: Omit<Question, 'id'>) {
+    const docRef = await addDoc(questionsCollectionRef, questionData);
+    return docRef.id;
+}
+
+export async function updateQuestion(id: string, questionData: Partial<Omit<Question, 'id'>>) {
+    const questionDoc = doc(db, 'questions', id);
+    await updateDoc(questionDoc, questionData);
+}
+
+export async function deleteQuestion(id: string) {
+    const questionDoc = doc(db, 'questions', id);
+    await deleteDoc(questionDoc);
+}
+
+
+export async function initializeGame(): Promise<GameState> {
     const docSnap = await getDoc(gameDocRef);
+    const questions = await fetchQuestions();
+
     if (docSnap.exists()) {
-        return docSnap.data() as GameState;
+        const existingState = docSnap.data() as GameState;
+        // Ensure questions are up-to-date
+        if (JSON.stringify(existingState.questions) !== JSON.stringify(questions)) {
+            await updateDoc(gameDocRef, { questions });
+            return { ...existingState, questions };
+        }
+        return existingState;
     } else {
         const initialState = getInitialState();
+        initialState.questions = questions;
         await setDoc(gameDocRef, initialState);
         return initialState;
     }
 }
 
-async function updateGameState(newState: Partial<GameState>) {
+export async function updateGameState(newState: Partial<GameState>) {
     await updateDoc(gameDocRef, newState);
 }
 
-async function resetGameInFirestore() {
+export async function resetGameInFirestore() {
+    const questions = await fetchQuestions();
     const freshState = getInitialState();
+    freshState.questions = questions;
     await setDoc(gameDocRef, freshState);
 }
 
@@ -103,11 +162,4 @@ async function resetGameInFirestore() {
 export { 
     db, 
     onSnapshot, 
-    gameDocRef, 
-    initializeGame, 
-    updateGameState,
-    resetGameInFirestore,
-    ROUND_TIME,
-    getInitialState,
-    type GameState
 };

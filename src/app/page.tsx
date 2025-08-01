@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { onSnapshot, gameDocRef, initializeGame, updateGameState, resetGameInFir
 const POST_ROUND_DELAY = 3000; // ms
 
 export default function GamePage() {
-  const [gameState, setGameState] = useState<GameState>(getInitialState());
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
     initializeGame().then(setGameState);
@@ -37,10 +38,10 @@ export default function GamePage() {
     roundWinner,
     waitingForHost,
     questions,
-  } = gameState;
+  } = gameState || getInitialState();
 
   const nextRound = useCallback(() => {
-    if (!questions) return;
+    if (!questions || questions.length === 0) return;
     updateGameState({
         buzzedPlayerId: null,
         roundWinner: null,
@@ -54,6 +55,7 @@ export default function GamePage() {
 
 
   useEffect(() => {
+    if (!gameState) return; // Don't run timer effect if game isn't loaded
     let interval: NodeJS.Timeout | null = null;
     if (isRoundActive && timer > 0) {
       interval = setInterval(() => {
@@ -69,12 +71,20 @@ export default function GamePage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRoundActive, timer, nextRound]);
+  }, [isRoundActive, timer, nextRound, gameState]);
   
+  if (!gameState || !questions || questions.length === 0) {
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="p-6 text-center">Loading game...</div>
+        </div>
+    );
+  }
+
   const buzzedPlayer = players.find(p => p.id === buzzedPlayerId);
   const currentQuestion = questions[currentQuestionIndex];
   if (!currentQuestion) {
-    return <div>Loading questions...</div>
+    return <div className="flex items-center justify-center h-screen"><div>Waiting for questions...</div></div>
   }
 
 
