@@ -1,56 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QuestionDisplay } from '@/components/QuestionDisplay';
 import { Buzzer } from '@/components/Buzzer';
 import { Scoreboard } from '@/components/Scoreboard';
 import { Button } from '@/components/ui/button';
-
-interface Player {
-  name: string;
-  score: number;
-}
-
-const mockQuestions = [
-    { id: 'q1', text: 'What is the capital of France?', answer: 'Paris', options: ['London', 'Berlin', 'Madrid', 'Paris'] },
-    { id: 'q2', text: 'Which planet is known as the Red Planet?', answer: 'Mars', options: ['Venus', 'Mars', 'Jupiter', 'Saturn'] },
-    { id: 'q3', text: 'Who wrote "To Kill a Mockingbird"?', answer: 'Harper Lee', options: ['Mark Twain', 'Harper Lee', 'F. Scott Fitzgerald', 'Ernest Hemingway'] },
-];
+import { GameState, initializeGame, onGameStateChange, updateGameState } from '@/lib/firebase';
 
 export default function Home() {
-  const [players, setPlayers] = useState<Player[]>([
-    { name: 'Player 1', score: 0 },
-    { name: 'Player 2', score: 0 },
-    { name: 'Player 3', score: 0 },
-  ]);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [buzzedInPlayer, setBuzzedInPlayer] = useState<string | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
-  const currentQuestion = mockQuestions[questionIndex];
+  useEffect(() => {
+    initializeGame();
+    const unsubscribe = onGameStateChange(setGameState);
+    return () => unsubscribe();
+  }, []);
+
+  if (!gameState) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
+        <p className="text-2xl font-headline">Loading game...</p>
+      </main>
+    );
+  }
+
+  const { players, questionIndex, buzzedInPlayer, questions } = gameState;
+  const currentQuestion = questions[questionIndex];
   const isRoundOver = !!buzzedInPlayer;
 
   const handleBuzz = (playerName: string) => {
     if (!isRoundOver) {
-      setBuzzedInPlayer(playerName);
-      // Award point to the winner of the buzz
-      setPlayers(prevPlayers => 
-        prevPlayers.map(p => 
-          p.name === playerName ? { ...p, score: p.score + 10 } : p
-        )
+      const newPlayers = players.map(p => 
+        p.name === playerName ? { ...p, score: p.score + 10 } : p
       );
+      updateGameState({ buzzedInPlayer: playerName, players: newPlayers });
     }
   };
 
   const handleTimeUp = () => {
     if (!isRoundOver) {
-      // Mark round as over without a winner to show the answer
-      setBuzzedInPlayer(''); // Empty string indicates time up, null means active
+      updateGameState({ buzzedInPlayer: '' }); // Empty string indicates time up
     }
   };
 
   const nextRound = () => {
-    setBuzzedInPlayer(null);
-    setQuestionIndex((prevIndex) => (prevIndex + 1) % mockQuestions.length);
+    const newQuestionIndex = (questionIndex + 1) % questions.length;
+    updateGameState({
+      buzzedInPlayer: null,
+      questionIndex: newQuestionIndex,
+    });
   };
 
   return (
