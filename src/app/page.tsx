@@ -33,7 +33,7 @@ const MOCK_QUESTIONS = [
   },
 ];
 
-const ROUND_TIME = 10; // seconds
+const ROUND_TIME = 20; // seconds
 const POST_ROUND_DELAY = 3000; // ms
 
 export default function GamePage() {
@@ -49,6 +49,26 @@ export default function GamePage() {
   const [isRoundActive, setIsRoundActive] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [roundWinner, setRoundWinner] = useState<Player | null>(null);
+  const yourPlayer = players.find(p => p.isYou) || players[2];
+
+  const handleBuzz = useCallback((playerId: string) => {
+    if (isRoundActive && !buzzedPlayerId) {
+      setIsRoundActive(false);
+      setBuzzedPlayerId(playerId);
+
+      // Simulate correct answer and award point
+      const winner = players.find(p => p.id === playerId);
+      if (winner) {
+        setRoundWinner(winner);
+        setPlayers(prevPlayers => prevPlayers.map(p =>
+            p.id === playerId ? { ...p, score: p.score + 10 } : p
+        ));
+        setShowConfetti(true);
+      }
+      
+      setTimeout(nextRound, POST_ROUND_DELAY);
+    }
+  }, [isRoundActive, buzzedPlayerId, players]);
 
   const nextRound = useCallback(() => {
     setBuzzedPlayerId(null);
@@ -74,28 +94,23 @@ export default function GamePage() {
       if (interval) clearInterval(interval);
     };
   }, [isRoundActive, timer, nextRound]);
-
-  const handleBuzz = (playerId: string) => {
-    if (isRoundActive && !buzzedPlayerId) {
-      setIsRoundActive(false);
-      setBuzzedPlayerId(playerId);
-
-      // Simulate correct answer and award point
-      const winner = players.find(p => p.id === playerId);
-      if (winner) {
-        setRoundWinner(winner);
-        setPlayers(prevPlayers => prevPlayers.map(p => 
-            p.id === playerId ? { ...p, score: p.score + 10 } : p
-        ));
-        setShowConfetti(true);
+  
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        handleBuzz(yourPlayer.id);
       }
-      
-      setTimeout(nextRound, POST_ROUND_DELAY);
-    }
-  };
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleBuzz, yourPlayer.id]);
+
 
   const currentQuestion = MOCK_QUESTIONS[currentQuestionIndex];
-  const yourPlayer = players.find(p => p.isYou) || players[2];
 
   return (
     <div className="flex flex-col h-full bg-background font-body text-foreground">
