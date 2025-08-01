@@ -127,20 +127,12 @@ export async function deleteQuestion(id: string) {
 }
 
 
-export async function initializeGame(): Promise<GameState> {
+export async function initializeGame() {
     const docSnap = await getDoc(gameDocRef);
-    const questions = await fetchQuestions();
-
-    if (docSnap.exists()) {
-        const existingState = docSnap.data() as GameState;
-        // Always ensure questions are up-to-date on initialization
-        await updateDoc(gameDocRef, { questions });
-        return { ...existingState, questions };
-    } else {
+    if (!docSnap.exists()) {
         const initialState = getInitialState();
-        initialState.questions = questions;
+        initialState.questions = await fetchQuestions();
         await setDoc(gameDocRef, initialState);
-        return initialState;
     }
 }
 

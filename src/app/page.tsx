@@ -17,7 +17,8 @@ export default function GamePage() {
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
-    initializeGame().then(setGameState);
+    // Ensure the game document exists, then listen for changes.
+    initializeGame();
 
     const unsubscribe = onSnapshot(gameDocRef, (doc) => {
       if (doc.exists()) {
