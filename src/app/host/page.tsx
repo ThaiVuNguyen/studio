@@ -31,19 +31,14 @@ export default function HostPage() {
   const nextRound = useCallback(async () => {
     if (!gameState || !gameState.questions) return;
     
-    // Fetch latest questions in case they were updated
-    const { fetchQuestions } = await import('@/lib/firebase');
-    const updatedQuestions = await fetchQuestions();
-
     updateGameState({
         buzzedPlayerId: null,
         roundWinner: null,
         showConfetti: false,
-        currentQuestionIndex: (gameState.currentQuestionIndex + 1) % updatedQuestions.length,
+        currentQuestionIndex: (gameState.currentQuestionIndex + 1) % gameState.questions.length,
         timer: 30, // Reset timer
         isRoundActive: true,
         waitingForHost: false,
-        questions: updatedQuestions,
     });
   }, [gameState]);
 
