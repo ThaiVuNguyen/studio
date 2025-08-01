@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -5,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { LayoutDashboard, Lightbulb, Crown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export default function AdminLayout({
@@ -20,8 +22,8 @@ export default function AdminLayout({
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2 p-2">
-               <Crown className="w-8 h-8 text-sidebar-primary" />
-              <h1 className="text-xl font-headline font-bold text-sidebar-foreground">
+               <Crown className="w-8 h-8 text-primary" />
+              <h1 className="text-xl font-headline font-bold text-foreground">
                 BuzzerBeater
               </h1>
             </div>
@@ -64,3 +66,4 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+

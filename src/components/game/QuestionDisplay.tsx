@@ -1,9 +1,11 @@
+
 "use client";
 
 import type { FC } from 'react';
 import type { Player } from './Scoreboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Loader2 } from 'lucide-react';
 
 interface QuestionDisplayProps {
   question: string;
@@ -12,9 +14,11 @@ interface QuestionDisplayProps {
   isRoundActive: boolean;
   roundWinner: Player | null;
   correctAnswer: string;
+  buzzedPlayer?: Player | null;
+  waitingForHost?: boolean;
 }
 
-export const QuestionDisplay: FC<QuestionDisplayProps> = ({ question, timer, totalTime, isRoundActive, roundWinner, correctAnswer }) => {
+export const QuestionDisplay: FC<QuestionDisplayProps> = ({ question, timer, totalTime, isRoundActive, roundWinner, correctAnswer, buzzedPlayer, waitingForHost }) => {
   const progress = (timer / totalTime) * 100;
 
   const renderContent = () => {
@@ -26,6 +30,19 @@ export const QuestionDisplay: FC<QuestionDisplayProps> = ({ question, timer, tot
             <span className="font-headline font-bold text-accent">{roundWinner.name}</span> wins the round!
           </p>
           <p className="text-lg text-muted-foreground mt-1">Answer: {correctAnswer}</p>
+        </div>
+      );
+    }
+     if (waitingForHost && buzzedPlayer) {
+      return (
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-primary animate-pulse">
+            {buzzedPlayer.name} buzzed in!
+          </h2>
+          <div className="flex items-center justify-center gap-2 mt-4 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Waiting for host...</span>
+          </div>
         </div>
       );
     }
