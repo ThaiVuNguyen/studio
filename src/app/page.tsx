@@ -27,12 +27,20 @@ export default function GamePage() {
             // If the game state in Firestore has no questions, fetch them and update the state.
             // This is a critical step to ensure the game can start.
             if (!data.questions || data.questions.length === 0) {
+                console.log("No questions in game state, fetching...");
                 const questions = await fetchQuestions();
-                await updateGameState({ questions: questions });
-                // The listener will pick up this change and re-render with the questions.
+                if (questions.length > 0) {
+                    await updateGameState({ questions: questions, currentQuestionIndex: 0, isRoundActive: true });
+                    // The listener will pick up this change and set the full game state.
+                } else {
+                     setGameState(data); // Set state even if no questions to avoid being stuck
+                }
             } else {
                 setGameState(data);
             }
+        } else {
+            // Document doesn't exist, might be an issue with initialization
+            console.log("Game document does not exist.");
         }
       });
       return unsubscribe;
@@ -101,7 +109,7 @@ export default function GamePage() {
   const buzzedPlayer = players.find(p => p.id === buzzedPlayerId);
   const currentQuestion = questions?.[currentQuestionIndex];
   if (!currentQuestion) {
-    return <div className="flex items-center justify-center h-screen"><div>Waiting for questions...</div></div>
+    return <div className="flex items-center justify-center h-screen"><div>Waiting for questions to be added in the admin dashboard...</div></div>
   }
 
 

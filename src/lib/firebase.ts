@@ -85,6 +85,7 @@ export const questionsCollectionRef = collection(db, 'questions');
 async function seedInitialQuestions() {
     const questionsSnapshot = await getDocs(questionsCollectionRef);
     if (questionsSnapshot.empty) {
+        console.log("Seeding initial questions...");
         const batch = writeBatch(db);
         MOCK_QUESTIONS_DATA.forEach((question) => {
             const newDocRef = doc(questionsCollectionRef);
@@ -96,12 +97,8 @@ async function seedInitialQuestions() {
 }
 
 export async function fetchQuestions(): Promise<Question[]> {
+    await seedInitialQuestions(); // Ensure questions exist before fetching
     const snapshot = await getDocs(questionsCollectionRef);
-    if (snapshot.empty) {
-        await seedInitialQuestions();
-        const seededSnapshot = await getDocs(questionsCollectionRef);
-        return seededSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
-    }
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
 }
 
@@ -124,13 +121,21 @@ export async function deleteQuestion(id: string) {
 export async function initializeGame() {
     const docSnap = await getDoc(gameDocRef);
     if (!docSnap.exists()) {
+        console.log("Game document not found, creating initial state.");
         const initialState = getInitialState();
         await setDoc(gameDocRef, initialState);
     }
 }
 
 export async function updateGameState(newState: Partial<GameState>) {
-    await updateDoc(gameDocRef, newState);
+    // Check if the document exists before updating.
+    const docSnap = await getDoc(gameDocRef);
+    if(docSnap.exists()){
+        await updateDoc(gameDocRef, newState);
+    } else {
+        // If it doesn't exist (e.g., after a reset), set it.
+        await setDoc(gameDocRef, {...getInitialState(), ...newState});
+    }
 }
 
 export async function addPlayer(player: Player) {
@@ -144,6 +149,7 @@ export async function resetGameInFirestore() {
     const freshState = getInitialState();
     freshState.questions = questions;
     await setDoc(gameDocRef, freshState);
+    console.log("Game has been reset in Firestore.");
 }
 
 
