@@ -36,7 +36,7 @@ export default function HostPage() {
   // Sort buzzers by timestamp, fastest first
   const sortedBuzzers = [...buzzers].sort((a, b) => a.timestamp - b.timestamp);
 
-  const handleApprove = (playerName: string) => {
+  const handleCorrect = (playerName: string) => {
     const winner = players.find(p => p.name === playerName);
     if (winner) {
         const newPlayers = players.map(p => 
@@ -46,7 +46,7 @@ export default function HostPage() {
     }
   };
 
-  const handleReject = (playerName: string) => {
+  const handleIncorrect = (playerName: string) => {
     // Remove the rejected player from this round's buzzers list
     const updatedBuzzers = buzzers.filter(b => b.playerName !== playerName);
     updateGameState({ buzzers: updatedBuzzers });
@@ -89,14 +89,17 @@ export default function HostPage() {
                       <span className="font-bold text-lg">{index + 1}. {buzzer.playerName}</span>
                       <span className="text-sm text-muted-foreground ml-2">({new Date(buzzer.timestamp).toLocaleTimeString()})</span>
                     </div>
-                    {!isRoundOver && (
-                        <div className="flex gap-2">
-                            <Button size="icon" variant="outline" className="text-green-500 hover:text-green-600" onClick={() => handleApprove(buzzer.playerName)}>
-                                <Check />
-                            </Button>
-                            <Button size="icon" variant="outline" className="text-red-500 hover:text-red-600" onClick={() => handleReject(buzzer.playerName)}>
-                                <X />
-                            </Button>
+                    {index === 0 && !isRoundOver && (
+                        <div className="flex items-center gap-4">
+                           <p className="text-sm text-muted-foreground hidden md:block">Was the answer correct?</p>
+                            <div className="flex gap-2">
+                                <Button size="icon" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => handleCorrect(buzzer.playerName)}>
+                                    <Check />
+                                </Button>
+                                <Button size="icon" className="bg-red-500 hover:bg-red-600 text-white" onClick={() => handleIncorrect(buzzer.playerName)}>
+                                    <X />
+                                </Button>
+                            </div>
                         </div>
                     )}
                   </li>
