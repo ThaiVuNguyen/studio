@@ -7,90 +7,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Scoreboard, type Player } from '@/components/game/Scoreboard';
 import { CheckCircle, XCircle, Home, Tv } from 'lucide-react';
-
-const MOCK_QUESTIONS = [
-  {
-    id: '1',
-    question: 'This 2017 hit by Luis Fonsi and Daddy Yankee became the most-viewed YouTube video of all time.',
-    answer: 'Despacito',
-  },
-  {
-    id: '2',
-    question: 'What artist is known for the "Moonwalk" and the album "Thriller"?',
-    answer: 'Michael Jackson',
-  },
-  {
-    id: '3',
-    question: 'The song "Bohemian Rhapsody" is a signature hit for which British rock band?',
-    answer: 'Queen',
-  },
-  {
-    id: '4',
-    question: 'Which female artist holds the record for the most Grammy wins?',
-    answer: 'Beyoncé',
-  },
-];
+import { onSnapshot, gameDocRef, initializeGame, updateGameState, type GameState, getInitialState } from '@/lib/firebase';
 
 const POST_ROUND_DELAY = 3000; // ms
-
-type GameState = {
-  players: Player[];
-  currentQuestionIndex: number;
-  timer: number;
-  buzzedPlayerId: string | null;
-  isRoundActive: boolean;
-  showConfetti: boolean;
-  roundWinner: Player | null;
-  waitingForHost: boolean;
-};
 
 
 export default function HostPage() {
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'buzzerbeater_gamestate') {
-         try {
-          if (event.newValue) {
-            setGameState(JSON.parse(event.newValue));
-          }
-        } catch (e) {
-            console.error("Failed to parse game state from localStorage", e)
-        }
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Initial load
-    const storedState = localStorage.getItem('buzzerbeater_gamestate');
-    if (storedState) {
-        try {
-            setGameState(JSON.parse(storedState));
-        } catch(e) {
-            console.error("Failed to parse game state from localStorage", e)
-        }
-    }
+    initializeGame().then(setGameState);
 
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    const unsubscribe = onSnapshot(gameDocRef, (doc) => {
+      if (doc.exists()) {
+        setGameState(doc.data() as GameState);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const updateGameState = (newState: Partial<GameState>) => {
-    if (!gameState) return;
-    const updatedState = { ...gameState, ...newState };
-    setGameState(updatedState);
-    localStorage.setItem('buzzerbeater_gamestate', JSON.stringify(updatedState));
-  };
-
   const nextRound = useCallback(() => {
-    if (!gameState) return;
+    if (!gameState || !gameState.questions) return;
     updateGameState({
         buzzedPlayerId: null,
         roundWinner: null,
         showConfetti: false,
-        currentQuestionIndex: (gameState.currentQuestionIndex + 1) % MOCK_QUESTIONS.length,
+        currentQuestionIndex: (gameState.currentQuestionIndex + 1) % gameState.questions.length,
         timer: 30, // Reset timer
         isRoundActive: true,
         waitingForHost: false,
@@ -124,16 +67,19 @@ export default function HostPage() {
         waitingForHost: false,
         isRoundActive: false, // End the round
      });
-     // Show "Incorrect!" message on main screen (implicitly by ending round with no winner)
      setTimeout(nextRound, POST_ROUND_DELAY);
   };
 
   if (!gameState) {
-    return <div className="p-6">Loading game state... Make sure the main game screen is open.</div>;
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="p-6 text-center">Loading game state... Make sure the main game screen is open to initialize the game.</div>
+        </div>
+    );
   }
   
-  const { players, currentQuestionIndex, buzzedPlayerId, waitingForHost } = gameState;
-  const currentQuestion = MOCK_QUESTIONS[currentQuestionIndex];
+  const { players, currentQuestionIndex, buzzedPlayerId, waitingForHost, questions } = gameState;
+  const currentQuestion = questions[currentQuestionIndex];
   const buzzedPlayer = players.find(p => p.id === buzzedPlayerId);
 
   return (

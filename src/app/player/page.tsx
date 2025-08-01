@@ -6,47 +6,23 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BuzzerButton } from '@/components/game/BuzzerButton';
 import { Home } from 'lucide-react';
+import { onSnapshot, gameDocRef, initializeGame, updateGameState, type GameState } from '@/lib/firebase';
 
-// This is a simplified player view, it could be expanded with more game info
 export default function PlayerPage() {
-    const [gameState, setGameState] = useState<any>(null);
+    const [gameState, setGameState] = useState<GameState | null>(null);
     const yourPlayerId = '3'; // Hardcoded for 'You' player
 
     useEffect(() => {
-        const handleStorageChange = (event: StorageEvent) => {
-            if (event.key === 'buzzerbeater_gamestate') {
-                try {
-                    if (event.newValue) {
-                        setGameState(JSON.parse(event.newValue));
-                    }
-                } catch (e) {
-                    console.error("Failed to parse game state from localStorage", e);
-                }
-            }
-        };
-        window.addEventListener('storage', handleStorageChange);
+        initializeGame().then(setGameState);
 
-        // Initial load
-        const storedState = localStorage.getItem('buzzerbeater_gamestate');
-        if (storedState) {
-            try {
-                setGameState(JSON.parse(storedState));
-            } catch (e) {
-                console.error("Failed to parse game state from localStorage", e);
+        const unsubscribe = onSnapshot(gameDocRef, (doc) => {
+            if (doc.exists()) {
+                setGameState(doc.data() as GameState);
             }
-        }
+        });
 
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-        };
+        return () => unsubscribe();
     }, []);
-
-    const updateGameState = (newState: Partial<any>) => {
-        if (!gameState) return;
-        const updatedState = { ...gameState, ...newState };
-        setGameState(updatedState);
-        localStorage.setItem('buzzerbeater_gamestate', JSON.stringify(updatedState));
-    };
 
     const handleBuzz = (playerId: string) => {
         if (gameState && gameState.isRoundActive && !gameState.buzzedPlayerId) {
@@ -88,7 +64,7 @@ export default function PlayerPage() {
             </header>
             <div className="flex flex-col items-center justify-center gap-8">
                  <h2 className="text-3xl font-bold text-center">
-                    { canBuzz ? "Get Ready to BUZZ!" : (gameState?.waitingForHost ? "Waiting for host..." : "Round over!")}
+                    { !gameState ? "Connecting to game..." : (canBuzz ? "Get Ready to BUZZ!" : (gameState?.waitingForHost ? "Waiting for host..." : "Round over!"))}
                 </h2>
 
                 <BuzzerButton
@@ -100,4 +76,3 @@ export default function PlayerPage() {
         </div>
     );
 }
-
