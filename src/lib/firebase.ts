@@ -145,8 +145,8 @@ export async function addPlayer(player: Player) {
 }
 
 export async function resetGameInFirestore() {
-    const questions = await fetchQuestions();
     const freshState = getInitialState();
+    const questions = await fetchQuestions();
     freshState.questions = questions;
     await setDoc(gameDocRef, freshState);
     console.log("Game has been reset in Firestore.");
