@@ -9,7 +9,7 @@ import { Scoreboard } from '@/components/game/Scoreboard';
 import { QuestionDisplay } from '@/components/game/QuestionDisplay';
 import Confetti from '@/components/game/Confetti';
 import { Shield, Crown, User, Tv } from 'lucide-react';
-import { onSnapshot, gameDocRef, initializeGame, updateGameState, resetGameInFirestore, ROUND_TIME, type GameState, getInitialState } from '@/lib/firebase';
+import { onSnapshot, gameDocRef, initializeGame, updateGameState, resetGameInFirestore, ROUND_TIME, type GameState, getInitialState, fetchQuestions } from '@/lib/firebase';
 
 const POST_ROUND_DELAY = 3000; // ms
 
@@ -17,16 +17,32 @@ export default function GamePage() {
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
-    // Ensure the game document exists, then listen for changes.
-    initializeGame();
+    // This is the main screen, it drives the game initialization and state.
+    const setupGame = async () => {
+      await initializeGame(); // Ensures the game document exists.
 
-    const unsubscribe = onSnapshot(gameDocRef, (doc) => {
-      if (doc.exists()) {
-        setGameState(doc.data() as GameState);
-      }
-    });
+      const unsubscribe = onSnapshot(gameDocRef, async (doc) => {
+        if (doc.exists()) {
+            const data = doc.data() as GameState;
+            // If the game state in Firestore has no questions, fetch them and update the state.
+            // This is a critical step to ensure the game can start.
+            if (!data.questions || data.questions.length === 0) {
+                const questions = await fetchQuestions();
+                await updateGameState({ questions: questions });
+                // The listener will pick up this change and re-render with the questions.
+            } else {
+                setGameState(data);
+            }
+        }
+      });
+      return unsubscribe;
+    };
 
-    return () => unsubscribe();
+    const unsubPromise = setupGame();
+
+    return () => {
+      unsubPromise.then(unsub => unsub && unsub());
+    };
   }, []);
 
   const {
@@ -74,7 +90,7 @@ export default function GamePage() {
     };
   }, [isRoundActive, timer, nextRound, gameState]);
   
-  if (!gameState) {
+  if (!gameState || !gameState.questions || gameState.questions.length === 0) {
     return (
         <div className="flex items-center justify-center h-screen">
             <div className="p-6 text-center">Loading game...</div>

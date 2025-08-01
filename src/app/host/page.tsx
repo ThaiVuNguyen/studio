@@ -74,7 +74,7 @@ export default function HostPage() {
      setTimeout(nextRound, POST_ROUND_DELAY);
   };
 
-  if (!gameState) {
+  if (!gameState || !gameState.questions || gameState.questions.length === 0) {
     return (
         <div className="flex items-center justify-center h-screen">
             <div className="p-6 text-center">Loading game state... Make sure the main game screen is open to initialize the game.</div>
@@ -83,14 +83,6 @@ export default function HostPage() {
   }
   
   const { players, currentQuestionIndex, buzzedPlayerId, waitingForHost, questions } = gameState;
-
-  if (!questions || questions.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-          <div className="p-6 text-center">Waiting for questions to be added from the admin dashboard.</div>
-      </div>
-    );
-  }
   
   const currentQuestion = questions[currentQuestionIndex];
   const buzzedPlayer = players.find(p => p.id === buzzedPlayerId);

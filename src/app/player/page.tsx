@@ -13,7 +13,7 @@ export default function PlayerPage() {
     const yourPlayerId = '3'; // Hardcoded for 'You' player
 
     useEffect(() => {
-        initializeGame().then(setGameState);
+        initializeGame();
 
         const unsubscribe = onSnapshot(gameDocRef, (doc) => {
             if (doc.exists()) {

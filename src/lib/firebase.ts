@@ -128,14 +128,11 @@ export async function deleteQuestion(id: string) {
 
 
 export async function initializeGame() {
-    const allQuestions = await fetchQuestions();
     const docSnap = await getDoc(gameDocRef);
-    if (!docSnap.exists() || docSnap.data().questions?.length === 0) {
+    if (!docSnap.exists()) {
         const initialState = getInitialState();
-        initialState.questions = allQuestions;
         await setDoc(gameDocRef, initialState);
     }
-    return getDoc(gameDocRef);
 }
 
 export async function updateGameState(newState: Partial<GameState>) {
