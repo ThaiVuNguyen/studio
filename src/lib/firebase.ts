@@ -1,6 +1,7 @@
+
 // src/lib/firebase.ts
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, getDocs, deleteDoc, query } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -46,6 +47,7 @@ const mockQuestions: Question[] = [
 ];
 
 export const getGameRef = () => doc(db, 'games', GAME_ID);
+export const getQuestionsRef = () => collection(db, 'questions');
 
 export const initializeGame = async () => {
     const gameRef = getGameRef();
@@ -78,4 +80,32 @@ export const onGameStateChange = (callback: (state: GameState) => void) => {
             callback(snap.data() as GameState);
         }
     });
+};
+
+// Functions for managing questions
+export const addQuestion = async (question: Omit<Question, 'id'>) => {
+  await addDoc(getQuestionsRef(), question);
+};
+
+export const deleteQuestion = async (questionId: string) => {
+  await deleteDoc(doc(db, 'questions', questionId));
+};
+
+export const onQuestionsChange = (callback: (questions: Question[]) => void) => {
+    return onSnapshot(query(getQuestionsRef()), (snapshot) => {
+        const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+        callback(questions);
+    });
+};
+
+export const fetchQuestions = async (): Promise<Question[]> => {
+    const snapshot = await getDocs(getQuestionsRef());
+    if (snapshot.empty) {
+        // If there are no questions in Firestore, add the mock questions
+        for (const question of mockQuestions) {
+            await addQuestion(question);
+        }
+        return mockQuestions;
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
 };
