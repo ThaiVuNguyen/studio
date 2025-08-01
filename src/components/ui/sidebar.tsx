@@ -541,13 +541,6 @@ const SidebarMenuButton = React.forwardRef<
     const icon = childNodes.find((child: any) => child.type?.displayName?.includes('Icon') || child.type?.toString().includes('lucide'));
     const text = childNodes.filter((child: any) => typeof child === 'string' || child.type?.displayName !== 'Icon');
 
-    const buttonContent = (
-      <>
-        {icon}
-        <span className="truncate">{text}</span>
-      </>
-    )
-
     const button = (
       <Comp
         ref={ref}
@@ -557,7 +550,8 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       >
-        {buttonContent}
+        {icon}
+        <span className="truncate">{text}</span>
       </Comp>
     )
 
