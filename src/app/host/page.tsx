@@ -17,7 +17,7 @@ export default function HostPage() {
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
-    initializeGame().then(setGameState);
+    initializeGame();
 
     const unsubscribe = onSnapshot(gameDocRef, (doc) => {
       if (doc.exists()) {
@@ -29,7 +29,7 @@ export default function HostPage() {
   }, []);
 
   const nextRound = useCallback(async () => {
-    if (!gameState || !gameState.questions) return;
+    if (!gameState || !gameState.questions || gameState.questions.length === 0) return;
     
     updateGameState({
         buzzedPlayerId: null,

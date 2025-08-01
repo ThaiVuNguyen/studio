@@ -74,7 +74,7 @@ export default function GamePage() {
     };
   }, [isRoundActive, timer, nextRound, gameState]);
   
-  if (!gameState || !questions || questions.length === 0) {
+  if (!gameState) {
     return (
         <div className="flex items-center justify-center h-screen">
             <div className="p-6 text-center">Loading game...</div>
@@ -83,7 +83,7 @@ export default function GamePage() {
   }
 
   const buzzedPlayer = players.find(p => p.id === buzzedPlayerId);
-  const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestion = questions?.[currentQuestionIndex];
   if (!currentQuestion) {
     return <div className="flex items-center justify-center h-screen"><div>Waiting for questions...</div></div>
   }
